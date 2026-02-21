@@ -1,36 +1,97 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { signupUser, clearStatus } from "../../store/slices/signupslice";
+import { useNavigate } from "react-router-dom";
+
+import { signupUser } from "../../store/slices/signupslice";
 
 import SRUlogo from "../../../public/images/sru_logo_new.png";
 
 const Signup = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-    const { loading, error, success } = useSelector((state) => state.auth);
-
+    /* =========================
+        Redux State
+    ========================= */
+    const { loading, error, success, validationErrors } = useSelector(
+        (state) => state.auth,
+    );
+   
+    /* =========================
+        Form State
+    ========================= */
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     /* =========================
-        Clear status on mount
+        Field Errors
+    ========================= */
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    /* =========================
+        Clear Redux Status
+    ========================= */
+   
+    /* =========================
+        Backend Errors → UI
     ========================= */
     useEffect(() => {
-        dispatch(clearStatus());
-    }, [dispatch]);
+        if (validationErrors) {
+            setFieldErrors(validationErrors);
+        }
+    }, [validationErrors]);
 
+    /* =========================
+        Redirect on Success
+    ========================= */
+    useEffect(() => {
+        console.log("Redux success:", success);
+        if (success) {
+            navigate("/login", {
+                replace: true,
+                state: {
+                    email,
+                    message: "Registration successful! Please login.",
+                },
+            });
+        }
+    }, [success, navigate, email]);
     /* =========================
         Submit Handler
     ========================= */
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (password !== confirmPassword) {
-            alert("Passwords do not match!");
+        let errors = {};
+
+        if (!name.trim()) {
+            errors.name = "Full name is required";
+        }
+
+        if (!email.trim()) {
+            errors.email = "Email is required";
+        }
+
+        if (!password) {
+            errors.password = "Password is required";
+        } else if (password.length < 6) {
+            errors.password = "Password must be at least 6 characters";
+        }
+
+        if (!confirmPassword) {
+            errors.confirmPassword = "Confirm your password";
+        } else if (password !== confirmPassword) {
+            errors.confirmPassword = "Passwords do not match";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
             return;
         }
+
+        setFieldErrors({});
 
         dispatch(
             signupUser({
@@ -42,6 +103,9 @@ const Signup = () => {
         );
     };
 
+    /* =========================
+        UI
+    ========================= */
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-3 sm:px-6">
             {/* Card */}
@@ -71,32 +135,29 @@ const Signup = () => {
                         Create Account
                     </h2>
 
-                    <p className="text-center text-gray-500 mb-4 text-sm sm:text-base">
+                    <p className="text-center text-gray-500 mb-4">
                         Sign up to get started
                     </p>
 
-                    {/* Error Message */}
+                    {/* Global Error */}
                     {error && (
                         <p className="text-red-500 text-sm text-center mb-3">
                             {error}
                         </p>
                     )}
 
-                    {/* Success Message */}
+                    {/* Success */}
                     {success && (
                         <p className="text-green-600 text-sm text-center mb-3">
-                            Account created successfully!
+                            Registration successful! Redirecting to login...
                         </p>
                     )}
 
                     {/* Form */}
-                    <form
-                        onSubmit={handleSubmit}
-                        className="space-y-4 sm:space-y-5"
-                    >
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">
+                            <label className="block text-sm text-gray-600 mb-1">
                                 Full Name
                             </label>
 
@@ -105,14 +166,19 @@ const Signup = () => {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="John Doe"
-                                required
-                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm sm:text-base"
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                             />
+
+                            {fieldErrors.name && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {fieldErrors.name}
+                                </p>
+                            )}
                         </div>
 
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">
+                            <label className="block text-sm text-gray-600 mb-1">
                                 Email Address
                             </label>
 
@@ -121,14 +187,19 @@ const Signup = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="you@example.com"
-                                required
-                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm sm:text-base"
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                             />
+
+                            {fieldErrors.email && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {fieldErrors.email}
+                                </p>
+                            )}
                         </div>
 
                         {/* Password */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">
+                            <label className="block text-sm text-gray-600 mb-1">
                                 Password
                             </label>
 
@@ -137,14 +208,19 @@ const Signup = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                required
-                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm sm:text-base"
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                             />
+
+                            {fieldErrors.password && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {fieldErrors.password}
+                                </p>
+                            )}
                         </div>
 
                         {/* Confirm Password */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">
+                            <label className="block text-sm text-gray-600 mb-1">
                                 Confirm Password
                             </label>
 
@@ -155,42 +231,44 @@ const Signup = () => {
                                     setConfirmPassword(e.target.value)
                                 }
                                 placeholder="••••••••"
-                                required
-                                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm sm:text-base"
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                             />
+
+                            {fieldErrors.confirmPassword && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {fieldErrors.confirmPassword}
+                                </p>
+                            )}
                         </div>
 
                         {/* Terms */}
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
                             <input type="checkbox" required />
 
                             <span>
-                                I agree to the{" "}
-                                <a
-                                    href="#"
-                                    className="text-indigo-600 hover:underline"
-                                >
+                                I agree to{" "}
+                                <a href="#" className="text-indigo-600">
                                     Terms & Conditions
                                 </a>
                             </span>
                         </div>
 
-                        {/* Submit Button */}
+                        {/* Submit */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 sm:py-3 rounded-lg font-semibold transition shadow-md text-sm sm:text-base disabled:opacity-60"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-60"
                         >
                             {loading ? "Creating..." : "Create Account"}
                         </button>
                     </form>
 
                     {/* Footer */}
-                    <p className="text-center text-xs sm:text-sm text-gray-600 mt-5">
+                    <p className="text-center text-sm text-gray-600 mt-5">
                         Already have an account?{" "}
                         <a
                             href="/login"
-                            className="text-indigo-600 font-semibold hover:underline"
+                            className="text-indigo-600 font-semibold"
                         >
                             Login
                         </a>
